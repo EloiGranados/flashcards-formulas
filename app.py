@@ -122,13 +122,14 @@ if mode == "Estudio":
             with st.expander(title):
                 st.latex(latex)
 
+# ------------------ MODO PRÁCTICA ------------------
 elif mode == "Práctica":
     st.header("✍️ Modo Práctica")
     if not systems:
         st.warning("No se detectaron sistemas en el PDF.")
         st.stop()
 
-    # 1) Selección horizontal de sistema
+    ### 1) Selección horizontal de sistema
     st.write("**Elige tu sistema para practicar:**")
     cols = st.columns(len(systems))
     if "practice_system" not in st.session_state:
@@ -142,22 +143,21 @@ elif mode == "Práctica":
     practice_system = st.session_state.practice_system
     st.markdown(f"**Sistema seleccionado:** {practice_system}")
 
-    # 2) Nivel de dificultad
+    ### 2) Nivel de dificultad
     levels = {"Fácil":1, "Medio":2, "Difícil":4}
     diff = st.select_slider("Nivel de dificultad:", options=list(levels.keys()), value="Medio")
     max_huecos = levels[diff]
 
-    # 3) Seleccionar fórmula y preparar huecos
+    ### 3) Seleccionar fórmula y preparar huecos
     formulas = systems[practice_system]
     idx = st.session_state.idx % len(formulas)
     latex = formulas[idx]
     tokens = re.findall(r"\w+|\S", latex)
 
     if st.session_state.idx_changed:
-        # inicializar huecos e intentos
         n = min(max_huecos, len(tokens))
         st.session_state.blanks = random.sample(range(len(tokens)), n)
-        st.session_state.attempts = {b:3 for b in st.session_state.blanks}
+        st.session_state.attempts = {b: 3 for b in st.session_state.blanks}
         st.session_state.idx_changed = False
         # limpiar respuestas previas
         for b in st.session_state.blanks:
@@ -165,36 +165,38 @@ elif mode == "Práctica":
 
     blanks = st.session_state.blanks
 
-    # 4) Mostrar fórmula enmascarada con ___
-    masked = " ".join(" ___ " if i in blanks else tok for i,tok in enumerate(tokens))
+    ### 4) Mostrar fórmula enmascarada
+    masked = " ".join("___" if i in blanks else tok for i, tok in enumerate(tokens))
     st.subheader("Completa la fórmula:")
     st.latex(masked)
 
-    # 5) Inputs para cada hueco con coloreado
+    ### 5) Inputs para cada hueco con coloreado
     for j, b in enumerate(blanks, start=1):
         key = f"ans_{b}"
         val = st.session_state.get(key, "")
         attempts = st.session_state.attempts[b]
         correct = (val == tokens[b])
-        # verde si correcto, rojo si fallado alguna vez
         bg = "#d4f8d4" if correct else ("#f8d4d4" if attempts < 3 else "white")
-        st.text_input(f"Hueco {j}:", value=val, key=key, help=f"Intentos: {attempts}", 
+        st.text_input(f"Hueco {j}:", value=val, key=key, help=f"Intentos: {attempts}",
                       label_visibility="collapsed", placeholder="...", 
                       args={"style": f"background-color: {bg}"})
 
-    # 6) Teclado Especial
-    special = ['α','β','γ','δ','ε','λ','μ','ρ','θ','Σ','∑','∫','∂','∇','+','-','*','/','^','=']
+    ### 6) Teclado Especial con callback
     st.write("**Teclado Especial**")
+    # definimos callback para añadir al último hueco
+    def append_char(hueco, ch):
+        key = f"ans_{hueco}"
+        st.session_state[key] = st.session_state.get(key, "") + ch
+
+    special = ['α','β','γ','δ','ε','λ','μ','ρ','θ','Σ','∑','∫','∂','∇','+','-','*','/','^','=']
     for row in [special[:10], special[10:]]:
         cols_sp = st.columns(len(row))
         for col, ch in zip(cols_sp, row):
-            if col.button(ch):
-                # añade carácter al último hueco editado
-                last = blanks[-1]
-                st.session_state[f"ans_{last}"] = st.session_state.get(f"ans_{last}", "") + ch
-                st.experimental_rerun()
+            # cogemos siempre el último hueco de la lista
+            last_h = blanks[-1]
+            col.button(ch, on_click=append_char, args=(last_h, ch))
 
-    # 7) Botones de control
+    ### 7) Botones de control
     c1, c2 = st.columns(2)
     if c1.button("Comprobar respuestas"):
         correct = 0
@@ -209,7 +211,3 @@ elif mode == "Práctica":
         st.session_state.idx = random.randrange(len(formulas))
         st.session_state.idx_changed = True
         st.stop()
-
-else:
-    st.error("Modo no reconocido.")
-
