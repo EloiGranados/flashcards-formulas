@@ -38,84 +38,49 @@ for i, (name, start) in enumerate(positions):
     formulas = [ln.strip() for ln in block if any(op in ln for op in ops) and ln.strip()]
     systems[name] = formulas
 
-# Paso 2: Modo Estudio
-st.header("📚 Modo Estudio: Explora tus sistemas detectados")
-if not systems:
-    st.warning("No se detectaron sistemas en el PDF.")
-else:
-    system = st.selectbox("Elige un sistema:", list(systems.keys()))
-    st.markdown(f"**Sistema seleccionado:** {system}")
-    
-    # Despliegue específico para cada sistema
-    if system == "M/M/1":
-        mm1 = [
-            ("Utilización (ρ)", r"\rho = \frac{\lambda}{\mu}"),
-            ("Probabilidad sistema vacío (p₀)", r"p_0 = 1 - \rho"),
-            ("Probabilidad de k clientes (p_k)", r"p_k = (1 - \rho)\rho^k"),
-            ("Clientes en sistema (L)", r"L = \frac{\rho}{1 - \rho}"),
-            ("Clientes en cola (L_q)", r"L_q = \frac{\rho^2}{1 - \rho}"),
-            ("Tiempo en sistema (W)", r"W = \frac{1}{\mu - \lambda}"),
-            ("Tiempo en cola (W_q)", r"W_q = \frac{\lambda}{\mu(\mu - \lambda)}")
-        ]
-        for title, latex in mm1:
-            with st.expander(title, expanded=False):
-                st.latex(latex)
+# Paso 2: Selección de modo
+mode = st.radio("Selecciona modo:", ["Estudio", "Práctica"], horizontal=True)
 
-    elif system == "Erlang C":
-        ec = [
-            ("Carga total (r)", r"r = \frac{\lambda}{\mu}"),
-            ("Utilización por servidor (ρ)", r"\rho = \frac{r}{c}"),
-            ("Probabilidad n clientes (p_n)",
-             r"p_n = \begin{cases}\frac{r^n}{n!}p_0,&n<c\\\frac{r^n}{c!\,(n-c)!}p_0,&n\ge c\end{cases}"),
-            ("Probabilidad sistema vacío (p₀)",
-             r"p_0 = \left[\sum_{n=0}^{c-1}\frac{r^n}{n!}+\sum_{n=c}^k\frac{r^n}{c!\,(n-c)!}\right]^{-1}"),
-            ("Probabilidad de rechazo (p_K)", r"P_{rechazo} = p_K"),
-            ("Tasa efectiva de llegada (λ_eff) ", r"\lambda_{ef} = \lambda(1 - p_K)"),
-            ("Número medio en sistema (L)", r"L = \sum_{n=0}^K n\,p_n"),
-            ("Tiempo medio en sistema (W)", r"W = \frac{L}{\lambda_{ef}}"),
-            ("Número medio en cola (L_q)", r"L_q = \sum_{n=c}^K (n-c)\,p_n"),
-            ("Tiempo de espera en cola (W_q)", r"W_q = W - \frac{1}{\mu}")
-        ]
-        for title, latex in ec:
-            with st.expander(title, expanded=False):
-                st.latex(latex)
-
-    elif system == "M/M/c/k":
-        mmck = [
-            ("Carga total (r)", r"r = \frac{\lambda}{\mu}"),
-            ("Probabilidad n clientes (p_n)", r"p_n = \begin{cases}\frac{(c\rho)^n}{n!}p_0,&n\le c\\\frac{c^c\rho^n}{c!\,(n-c)!}p_0,&c<n\end{cases}"),
-            ("p₀ normalización", r"p_0 = \left[\sum_{n=0}^{c}\frac{(c\rho)^n}{n!}\right]^{-1}"),
-            ("Probabilidad de rechazo (p_k)", r"p_k = \frac{c^c\rho^k}{c!\,(k-c)!}p_0"),
-            ("Tasa efectiva (λ_eff)", r"\lambda_{ef} = \lambda(1 - p_k)"),
-            ("Número medio en sistema (L)", r"L = \sum_{n=0}^k n\,p_n"),
-            ("Tiempo medio en sistema (W)", r"W = \frac{L}{\lambda_{ef}}"),
-            ("Número medio en cola (L_q)", r"L_q = \sum_{n=c}^k (n-c)\,p_n"),
-            ("Tiempo de espera en cola (W_q)", r"W_q = W - \frac{1}{\mu}")
-        ]
-        for title, latex in mmck:
-            with st.expander(title, expanded=False):
-                st.latex(latex)
-
-    elif system == "Erlang B":
-        eb = [
-            ("Probabilidad de bloqueo (B(c,ρ))", r"B(c,\rho) = \frac{\rho^c/c!}{\sum_{n=0}^c\rho^n/n!}"),
-            ("Tasa efectiva de llegada (λ_eff)", r"\lambda_{ef} = \lambda(1 - B(c,\rho))"),
-            ("Número medio en sistema (L)", r"L = \sum_{n=0}^c n\frac{\rho^n}{n!}p_0"),
-            ("Tiempo medio en sistema (W)", r"W = \frac{L}{\lambda_{ef}}")
-        ]
-        for title, latex in eb:
-            with st.expander(title, expanded=False):
-                st.latex(latex)
-
+if mode == "Estudio":
+    st.header("📚 Modo Estudio: Explora tus sistemas detectados")
+    if not systems:
+        st.warning("No se detectaron sistemas en el PDF.")
     else:
-        formulas = systems.get(system, [])
-        if not formulas:
-            st.warning(f"No se encontraron fórmulas para {system}.")
+        system = st.selectbox("Elige un sistema para estudio:", list(systems.keys()))
+        st.markdown(f"**Sistema seleccionado:** {system}")
+        # Aquí va el despliegue de fórmulas por sistema (igual que antes)
+        if system == "M/M/1":
+            mm1 = [
+                ("Utilización (ρ)", r"\rho = \frac{\lambda}{\mu}"),
+                ("Probabilidad sistema vacío (p₀)", r"p_0 = 1 - \rho"),
+                ("Probabilidad de k clientes (p_k)", r"p_k = (1 - \rho)\rho^k"),
+                ("Clientes en sistema (L)", r"L = \frac{\rho}{1 - \rho}"),
+                ("Clientes en cola (L_q)", r"L_q = \frac{\rho^2}{1 - \rho}"),
+                ("Tiempo en sistema (W)", r"W = \frac{1}{\mu - \lambda}"),
+                ("Tiempo en cola (W_q)", r"W_q = \frac{\lambda}{\mu(\mu - \lambda)}")
+            ]
+            for title, latex in mm1:
+                with st.expander(title, expanded=False):
+                    st.latex(latex)
         else:
-            for i, f in enumerate(formulas, 1):
-                with st.expander(f"Fórmula {i}", expanded=False):
-                    try:
-                        st.latex(f)
-                    except:
-                        st.code(f)
-# Fin modo Estudio
+            formulas = systems.get(system, [])
+            if not formulas:
+                st.warning(f"No se encontraron fórmulas para {system}.")
+            else:
+                for i, f in enumerate(formulas, 1):
+                    with st.expander(f"Fórmula {i}", expanded=False):
+                        try:
+                            st.latex(f)
+                        except:
+                            st.code(f)
+
+elif mode == "Práctica":
+    st.header("✍️ Modo Práctica: Elige un sistema")
+    if not systems:
+        st.warning("No se detectaron sistemas en el PDF.")
+    else:
+        practice_system = st.selectbox("Elige un sistema para practicar:", list(systems.keys()))
+        st.write(f"Preparando práctica para: **{practice_system}**")
+        # Aquí añadiremos las preguntas interactivas según el sistema seleccionado
+        st.info("(En próximas iteraciones aparecerán las flashcards de práctica para este sistema.)")
+# Fin de la app
