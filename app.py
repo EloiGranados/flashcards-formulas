@@ -127,17 +127,26 @@ elif mode == "Práctica":
                     st.session_state.idx = random.randrange(len(systems[sys]))
         # Si ya elegimos sistema
         if "practice_system" in st.session_state:
-            practice_system = st.session_state.practice_system
-            st.markdown(f"**Sistema seleccionado:** {practice_system}")
-            
-            # 2) Obtener fórmula y crear huecos
+                   practice_system = st.session_state.practice_system
+        st.markdown(f"**Sistema seleccionado:** {practice_system}")
+
+        # 1️⃣ Sub-modo dentro de M/M/1
+        if practice_system == "M/M/1":
+            submode = st.radio("Sub-modo:", ["Aleatorio"], horizontal=True)
+        else:
+            submode = "Aleatorio"  # más sub-modos en el futuro
+
+        # 2️⃣ Lógica del sub-modo “Aleatorio”
+        if submode == "Aleatorio":
+            # Elegir al azar cada vez que pulsemos “Siguiente fórmula”
             formulas = systems[practice_system]
+            # si acabamos de entrar o tras “Siguiente fórmula”, idx ya está en session_state
             idx = st.session_state.idx % len(formulas)
             latex = formulas[idx]
             st.latex(latex)
 
+            # Cloze: dos huecos al azar
             tokens = re.findall(r"\w+|\S", latex)
-            # dos huecos fijos, o ajusta aquí
             blanks = random.sample(range(len(tokens)), min(2, len(tokens)))
             answers = [tokens[i] for i in blanks]
             for i in blanks:
@@ -145,17 +154,19 @@ elif mode == "Práctica":
             st.markdown("**Rellena los huecos:**")
             st.code(" ".join(tokens))
 
-            # 3) Área de respuesta y teclado griego
+            # Área de respuesta
             if "resp" not in st.session_state:
                 st.session_state.resp = ""
-            st.session_state.resp = st.text_area("Tu respuesta:", st.session_state.resp, height=80)
+            st.session_state.resp = st.text_area("Tu respuesta:", value=st.session_state.resp, height=80)
+
+            # Teclado griego
             greeks = ['α','β','γ','δ','ε','λ','μ','ρ','θ','Σ','∑','∫','∂','∇']
             cols2 = st.columns(len(greeks))
             for i, g in enumerate(greeks):
                 if cols2[i].button(g):
                     st.session_state.resp += g
 
-            # 4) Botón Comprobar y Siguiente
+            # Botones de control
             colc, colsx = st.columns([1,1])
             if colc.button("Comprobar respuesta"):
                 user = [u.strip() for u in st.session_state.resp.split(",")]
@@ -163,6 +174,5 @@ elif mode == "Práctica":
                 mistakes = len(answers) - correct
                 st.write(f"Aciertos: {correct}/{len(answers)} | Errores: {mistakes}")
             if colsx.button("Siguiente fórmula"):
-                # Avanzar índice y limpiar respuesta
-                st.session_state.idx = (st.session_state.idx + 1) % len(formulas)
+                st.session_state.idx = random.randrange(len(formulas))
                 st.session_state.resp = ""
