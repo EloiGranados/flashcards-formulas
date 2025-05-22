@@ -116,75 +116,82 @@ elif mode == "Práctica":
     if not systems:
         st.warning('No se detectaron sistemas en el PDF.')
     else:
-        # Paso A: selección horizontal de sistema
+        # 1) Selección horizontal de sistema
+        st.write('**Elige tu sistema para practicar:**')
+        cols = st.columns(len(systems))
         if 'practice_system' not in st.session_state:
-            st.write('**Elige tu sistema para practicar:**')
-            cols = st.columns(len(systems))
             for col, sys in zip(cols, systems.keys()):
                 if col.button(sys):
                     st.session_state.practice_system = sys
+                    st.session_state.idx = random.randrange(len(systems[sys]))
+                    st.session_state.resp = ""
             st.stop()
 
         practice_system = st.session_state.practice_system
         st.markdown(f'**Sistema seleccionado:** {practice_system}')
 
-        # Paso B: selección de dificultad
-        if 'practice_difficulty' not in st.session_state:
-            diff = st.radio('Nivel de dificultad:', ['Fácil', 'Medio', 'Difícil'], horizontal=True)
-            st.session_state.practice_difficulty = diff
-            st.stop()
-
-        difficulty = st.session_state.practice_difficulty
+        # 2) Sub-modo y dificultad (solo Aleatorio por ahora)
+        submode = st.radio('Sub-modo:', ['Aleatorio'], horizontal=True)
         levels = {'Fácil': 1, 'Medio': 2, 'Difícil': 4}
+        if 'practice_difficulty' not in st.session_state:
+            diff = st.select_slider('Nivel de dificultad:', options=list(levels.keys()), value='Medio')
+            st.session_state.practice_difficulty = diff
+        difficulty = st.session_state.practice_difficulty
+        max_huecos = levels[difficulty]
+
+        # 3) Mostrar fórmula completa con calidad LaTeX
         formulas = systems[practice_system]
+        idx = st.session_state.idx % len(formulas)
+        latex_full = formulas[idx]
+        st.subheader('Fórmula completa')
+        st.latex(latex_full)
 
-        # Paso C: inicializar índice y huecos
-        if 'idx' not in st.session_state:
-            st.session_state.idx = random.randrange(len(formulas))
-        latex = formulas[st.session_state.idx]
-        tokens = re.findall(r'\w+|\S', latex)
-        max_blanks = min(levels[difficulty], len(tokens))
-        if 'blanks' not in st.session_state or st.session_state.idx is None:
-            st.session_state.blanks = random.sample(range(len(tokens)), max_blanks)
-            for i in range(len(tokens)):
-                key = f'ans_{i}'
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.session_state.current_blank = 1
-
+        # 4) Generar huecos adaptados
+        tokens = re.findall(r"\w+|\S", latex_full)
+        n_huecos = min(max_huecos, len(tokens))
+        if 'blanks' not in st.session_state or st.session_state.idx_changed:
+            st.session_state.blanks = random.sample(range(len(tokens)), n_huecos)
+            st.session_state.idx_changed = False
         blanks = st.session_state.blanks
-        # Crear tokens enmascarados
-        masked = []
+        # Construir expresión con marcadores
+        masked_tokens = []
         for i, tok in enumerate(tokens):
             if i in blanks:
                 num = blanks.index(i) + 1
-                masked.append(f'[{num}]')
+                masked_tokens.append(f'[{num}]')
             else:
-                masked.append(tok)
-        st.markdown('**Rellena los huecos:**')
-        st.code(' '.join(masked))
+                masked_tokens.append(tok)
+        masked_latex = ''.join(masked_tokens)
+        st.subheader('Rellena los huecos')
+        st.markdown(f"$$ {masked_latex} $$")
 
-        # Selección de hueco a rellenar
-        cols_h = st.columns(len(blanks))
-        for j, _ in enumerate(blanks, start=1):
-            if cols_h[j-1].button(f'Hueco {j}'):
-                st.session_state.current_blank = j
-        current = st.session_state.current_blank
+        # 5) Teclado de letras especiales (griego y operadores)
+        special = ['α','β','γ','δ','ε','λ','μ','ρ','θ','Σ','∑','∫','∂','∇']
+        st.write('## Teclado especial')
+        for row in [special[:7], special[7:]]:
+            cols_sp = st.columns(len(row))
+            for c, ch in zip(cols_sp, row):
+                if c.button(ch):
+                    st.session_state.resp += ch
 
-        # Entrada para el hueco actual
-        ans_key = f'ans_{current-1}'
-        st.session_state[ans_key] = st.text_input(f'Respuesta hueco {current}:',
-                                                   value=st.session_state.get(ans_key, ''))
+        # 6) Entrada de respuesta para cada hueco
+        user_answers = []
+        for j in range(len(blanks)):
+            key = f'ans_{j}'
+            user_answers.append(
+                st.text_input(f'Respuesta hueco {j+1}:', value=st.session_state.get(key, ''), key=key)
+            )
 
-        # Botones de control
+        # 7) Botones de control
         colc, colsx = st.columns(2)
         if colc.button('Comprobar respuesta'):
-            user_answers = [st.session_state.get(f'ans_{i}', '') for i in blanks]
             correct = sum(u == tokens[blanks[i]] for i, u in enumerate(user_answers))
             mistakes = len(user_answers) - correct
             st.write(f'Aciertos: {correct}/{len(user_answers)} | Errores: {mistakes}')
         if colsx.button('Siguiente fórmula'):
             st.session_state.idx = random.randrange(len(formulas))
-            del st.session_state['blanks']
+            st.session_state.idx_changed = True
+            # limpiar respuestas
+            for j in range(len(blanks)):
+                st.session_state.pop(f'ans_{j}', None)
             st.experimental_rerun()
-
