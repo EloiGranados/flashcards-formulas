@@ -84,3 +84,4 @@ elif mode == "Práctica":
         # Aquí añadiremos las preguntas interactivas según el sistema seleccionado
         st.info("(En próximas iteraciones aparecerán las flashcards de práctica para este sistema.)")
 # Fin de la app
+
