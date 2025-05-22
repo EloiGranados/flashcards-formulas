@@ -50,97 +50,61 @@ if mode == "Estudio":
         # ... código de despliegue existente ...
 
 # ------------------ MODO PRÁCTICA ------------------
+# ------------------ MODO PRÁCTICA ------------------
 elif mode == "Práctica":
-    st.header('✍️ Modo Práctica')
+    st.header("✍️ Modo Práctica")
+
     if not systems:
-        st.warning('No se detectaron sistemas en el PDF.')
+        st.warning("No se detectaron sistemas en el PDF.")
     else:
-        # Selección horizontal de sistema
-        st.write('**Elige tu sistema para practicar:**')
+        # 1) Selección horizontal de sistema
+        st.write("**Elige tu sistema para practicar:**")
         cols = st.columns(len(systems))
-        if 'practice_system' not in st.session_state:
+        # Si no hay sistema en estado, muestro botones
+        if "practice_system" not in st.session_state:
             for col, sys in zip(cols, systems.keys()):
                 if col.button(sys):
                     st.session_state.practice_system = sys
                     st.session_state.idx = random.randrange(len(systems[sys]))
-                    st.session_state.resp = {}
-                    st.session_state.attempts = {}
-            st.stop()
-        practice_system = st.session_state.practice_system
-        st.markdown(f'**Sistema seleccionado:** {practice_system}')
+        # Si ya elegimos sistema
+        if "practice_system" in st.session_state:
+            practice_system = st.session_state.practice_system
+            st.markdown(f"**Sistema seleccionado:** {practice_system}")
+            
+            # 2) Obtener fórmula y crear huecos
+            formulas = systems[practice_system]
+            idx = st.session_state.idx % len(formulas)
+            latex = formulas[idx]
+            st.latex(latex)
 
-        # Dificultad
-        levels = {'Fácil': 1, 'Medio': 2, 'Difícil': 4}
-        difficulty = st.select_slider('Nivel de dificultad:', options=list(levels.keys()), value='Medio')
-        max_huecos = levels[difficulty]
+            tokens = re.findall(r"\w+|\S", latex)
+            # dos huecos fijos, o ajusta aquí
+            blanks = random.sample(range(len(tokens)), min(2, len(tokens)))
+            answers = [tokens[i] for i in blanks]
+            for i in blanks:
+                tokens[i] = "___"
+            st.markdown("**Rellena los huecos:**")
+            st.code(" ".join(tokens))
 
-        # Obtener fórmula y tokens
-        formulas = systems[practice_system]
-        idx = st.session_state.idx % len(formulas)
-        latex = formulas[idx]
-        tokens = re.findall(r"\w+|\S", latex)
-        n_huecos = min(max_huecos, len(tokens))
-        # Determinar posiciones de huecos si es primera vez
-        if 'blanks' not in st.session_state or st.session_state.idx_changed:
-            blanks = random.sample(range(len(tokens)), n_huecos)
-            st.session_state.blanks = blanks
-            st.session_state.idx_changed = False
-            # inicializar intentos por hueco
-            for b in blanks:
-                st.session_state.attempts[b] = 3
-        blanks = st.session_state.blanks
+            # 3) Área de respuesta y teclado griego
+            if "resp" not in st.session_state:
+                st.session_state.resp = ""
+            st.session_state.resp = st.text_area("Tu respuesta:", st.session_state.resp, height=80)
+            greeks = ['α','β','γ','δ','ε','λ','μ','ρ','θ','Σ','∑','∫','∂','∇']
+            cols2 = st.columns(len(greeks))
+            for i, g in enumerate(greeks):
+                if cols2[i].button(g):
+                    st.session_state.resp += g
 
-        # Construir display con inputs inline
-        filled = []
-        for i, tok in enumerate(tokens):
-            if i in blanks:
-                # mostrar input en línea para cada hueco
-                input_key = f'hueco_{i}'
-                val = st.session_state.resp.get(input_key, '')
-                # determinar color según estado
-                attempts_left = st.session_state.attempts.get(i, 3)
-                is_correct = (val == tokens[i])
-                color = 'lightgreen' if is_correct else ('lightcoral' if attempts_left < 3 else 'white')
-                filled.append(st.text_input(f'', value=val, key=input_key, label_visibility='collapsed', help=f'Intentos restantes: {attempts_left}', args={'style': f'background-color: {color}'}))
-            else:
-                filled.append(tok)
-        # Mostrar la fórmula con inputs
-        st.markdown("**Completa la fórmula:**")
-        st.code(' '.join(filled))
+            # 4) Botón Comprobar y Siguiente
+            colc, colsx = st.columns([1,1])
+            if colc.button("Comprobar respuesta"):
+                user = [u.strip() for u in st.session_state.resp.split(",")]
+                correct = sum(u == a for u, a in zip(user, answers))
+                mistakes = len(answers) - correct
+                st.write(f"Aciertos: {correct}/{len(answers)} | Errores: {mistakes}")
+            if colsx.button("Siguiente fórmula"):
+                # Avanzar índice y limpiar respuesta
+                st.session_state.idx = (st.session_state.idx + 1) % len(formulas)
+                st.session_state.resp = ""
 
-        # Teclado especial: griegas y operadores
-        special = ['α','β','γ','δ','ε','λ','μ','ρ','θ','Σ','∑','∫','∂','∇','+','-','*','/','^','=']
-        st.write('## Teclado Especial')
-        for row in [special[:9], special[9:]]:
-            cols_sp = st.columns(len(row))
-            for c, ch in zip(cols_sp, row):
-                if c.button(ch):
-                    # añade carácter en último hueco seleccionado
-                    # encontrar último input key
-                    last = max(st.session_state.blanks)
-                    key = f'hueco_{last}'
-                    st.session_state.resp[key] = st.session_state.resp.get(key, '') + ch
-                    st.experimental_rerun()
-
-        # Comprobar
-        if st.button('Comprobar respuestas'):
-            correct = 0
-            for b in blanks:
-                key = f'hueco_{b}'
-                ans = st.session_state.resp.get(key, '')
-                if ans == tokens[b]:
-                    correct += 1
-                else:
-                    st.session_state.attempts[b] -= 1
-            mistakes = len(blanks) - correct
-            st.write(f'Aciertos: {correct}/{len(blanks)}')
-
-            # mostrar colores actualizados
-            st.session_state.idx_changed = False
-
-        # Siguiente
-        if st.button('Siguiente fórmula'):
-            st.session_state.idx = (st.session_state.idx + 1) % len(formulas)
-            st.session_state.idx_changed = True
-            st.session_state.resp = {}
-            st.stop()
