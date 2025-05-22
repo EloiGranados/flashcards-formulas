@@ -112,49 +112,57 @@ if mode == "Estudio":
 # ------------------ MODO PRÁCTICA ------------------
 elif mode == "Práctica":
     st.header("✍️ Modo Práctica")
+
     if not systems:
         st.warning("No se detectaron sistemas en el PDF.")
     else:
-        # Selector horizontal de sistema
+        # 1) Selección horizontal de sistema
         st.write("**Elige tu sistema para practicar:**")
         cols = st.columns(len(systems))
-        if 'practice_system' not in st.session_state:
+        # Si no hay sistema en estado, muestro botones
+        if "practice_system" not in st.session_state:
             for col, sys in zip(cols, systems.keys()):
                 if col.button(sys):
                     st.session_state.practice_system = sys
                     st.session_state.idx = random.randrange(len(systems[sys]))
-                    st.session_state.resp = ""
-            st.stop()
-        practice_system = st.session_state.practice_system
-        st.markdown(f"**Sistema seleccionado:** {practice_system}")
-        # Flashcard actual
-        formulas = systems[practice_system]
-        latex = formulas[st.session_state.idx]
-        st.latex(latex)
-        # Crear huecos
-        tokens = re.findall(r"\w+|\S", latex)
-        blanks = random.sample(range(len(tokens)), min(2, len(tokens)))
-        answers = [tokens[i] for i in blanks]
-        for i in blanks:
-            tokens[i] = '___'
-        st.markdown("**Rellena los huecos:**")
-        st.code(" ".join(tokens))
-        # Respuesta y teclado griego
-        st.session_state.resp = st.text_area("Tu respuesta:", value=st.session_state.resp, height=80)
-        greeks = ['α','β','γ','δ','ε','λ','μ','ρ','θ','Σ','∑','∫','∂','∇']
-        cols2 = st.columns(len(greeks))
-        for i, g in enumerate(greeks):
-            if cols2[i].button(g):
-                st.session_state.resp += g
-                st.experimental_rerun()
-        if st.button("Comprobar respuesta"):
-            user = [u.strip() for u in st.session_state.resp.split(",")]
-            correct = sum(u == a for u, a in zip(user, answers))
-            mistakes = len(answers) - correct
-            st.write(f"Aciertos: {correct}/{len(answers)} | Errores ronda: {mistakes}")
-        if st.button("Siguiente fórmula"):
-            st.session_state.idx = random.randrange(len(formulas))
-            st.session_state.resp = ""
-            st.experimental_rerun()
+        # Si ya elegimos sistema
+        if "practice_system" in st.session_state:
+            practice_system = st.session_state.practice_system
+            st.markdown(f"**Sistema seleccionado:** {practice_system}")
+            
+            # 2) Obtener fórmula y crear huecos
+            formulas = systems[practice_system]
+            idx = st.session_state.idx % len(formulas)
+            latex = formulas[idx]
+            st.latex(latex)
 
+            tokens = re.findall(r"\w+|\S", latex)
+            # dos huecos fijos, o ajusta aquí
+            blanks = random.sample(range(len(tokens)), min(2, len(tokens)))
+            answers = [tokens[i] for i in blanks]
+            for i in blanks:
+                tokens[i] = "___"
+            st.markdown("**Rellena los huecos:**")
+            st.code(" ".join(tokens))
 
+            # 3) Área de respuesta y teclado griego
+            if "resp" not in st.session_state:
+                st.session_state.resp = ""
+            st.session_state.resp = st.text_area("Tu respuesta:", st.session_state.resp, height=80)
+            greeks = ['α','β','γ','δ','ε','λ','μ','ρ','θ','Σ','∑','∫','∂','∇']
+            cols2 = st.columns(len(greeks))
+            for i, g in enumerate(greeks):
+                if cols2[i].button(g):
+                    st.session_state.resp += g
+
+            # 4) Botón Comprobar y Siguiente
+            colc, colsx = st.columns([1,1])
+            if colc.button("Comprobar respuesta"):
+                user = [u.strip() for u in st.session_state.resp.split(",")]
+                correct = sum(u == a for u, a in zip(user, answers))
+                mistakes = len(answers) - correct
+                st.write(f"Aciertos: {correct}/{len(answers)} | Errores: {mistakes}")
+            if colsx.button("Siguiente fórmula"):
+                # Avanzar índice y limpiar respuesta
+                st.session_state.idx = (st.session_state.idx + 1) % len(formulas)
+                st.session_state.resp = ""
