@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
 import pdfplumber
-import re
 
 # Configuración de la página
 st.set_page_config(page_title="Flashcards Dinámicas", layout="wide")
@@ -14,28 +13,29 @@ if not uploaded:
     st.stop()
 
 # Leer todo el texto del PDF
-txt = ""
+txt = ''
 with pdfplumber.open(uploaded) as pdf:
     for page in pdf.pages:
-        txt += (page.extract_text() or "") + "\n"
+        txt += (page.extract_text() or '') + '\n'
 
 # Paso 1: Detectar los 4 sistemas principales
 desired_systems = ["M/M/1", "Erlang C", "M/M/c/k", "Erlang B"]
 systems_found = []
 for line in txt.split("\n"):
-    stripped = line.strip()
+    low = line.lower()
     for name in desired_systems:
-        # Coincidir nombre exacto, opcionalmente con "Sistema " delante
-        pattern = rf"^(?:Sistema\s+)?{re.escape(name)}$"
-        if re.match(pattern, stripped, re.IGNORECASE):
+        if name.lower() in low:
             if name not in systems_found:
                 systems_found.append(name)
 
 # Mostrar resultados en modo Estudio
 st.header("📚 Modo Estudio: Sistemas Detectados")
 if systems_found:
-    st.write("Los siguientes sistemas han sido detectados en el PDF:")
+    st.write("Se han detectado los siguientes sistemas en el PDF:")
     for sys in systems_found:
         st.markdown(f"- **{sys}**")
 else:
     st.warning("No se detectó ninguno de los sistemas: M/M/1, Erlang C, M/M/c/k, Erlang B.")
+
+# Nota: en próximos pasos agregaremos definiciones y fórmulas de cada sistema.
+
