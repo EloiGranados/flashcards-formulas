@@ -59,7 +59,6 @@ else:
         ]
         for title, latex in mm1:
             with st.expander(f"🔹 {title}", expanded=True):
-                st.markdown(f"**{title}**")
                 st.latex(latex)
     else:
         # Genérico para otros sistemas
@@ -69,7 +68,6 @@ else:
         else:
             for i, f in enumerate(formulas, 1):
                 with st.expander(f"🔹 Fórmula {i}", expanded=True):
-                    st.markdown(f"**Fórmula {i}**")
                     try:
                         st.latex(f)
                     except:
