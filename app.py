@@ -62,3 +62,4 @@ else:
 # Fin del prototipo de modo Estudio
 
 # En siguientes pasos implementaremos Práctica, descripciones y más funcionalidades.
+
